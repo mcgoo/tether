@@ -22,13 +22,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Link any platform-specific dependencies.
 
     if cfg!(target_os = "linux") {
+        // require gtk 3.14 or later but do not emit metadata to use it - 
+        // leave that for webkit2gtk
         pkg_config::Config::new()
             .atleast_version("3.14")
+            .cargo_metadata(false)
             .probe("gtk+-3.0")?;
 
-        pkg_config::Config::new()
+        let webkit = pkg_config::Config::new()
             .atleast_version("2.8")
             .probe("webkit2gtk-4.0")?;
+
+        let mut build = cc::Build::new();
+        build.file("gtk.c")
+            .flag("-ffunction-sections")
+            .flag("-fdata-sections")
+            .flag("-fPIC")
+            .flag("-pthread")
+            .flag("-std=c99")
+            .flag("-Wall")
+            .flag("-Wextra");
+        webkit.include_paths.iter().for_each(|inc| { build.include(inc) ; } );
+        build.compile("tether");
+
     } else if cfg!(target_os = "windows") {
         println!("cargo:rustc-link-lib=dylib=ole32");
         println!("cargo:rustc-link-lib=dylib=user32");
@@ -39,13 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Build the library.
-
-    if cfg!(target_os = "linux") {
-        run_script(r#"
-            clang -ffunction-sections -fdata-sections -fPIC -c -Wall -Wextra `pkg-config --cflags gtk+-3.0 webkit2gtk-4.0` -o "$OUT_DIR/libtether.o" gtk.c
-            ar rcs "$OUT_DIR/libtether.a" "$OUT_DIR/libtether.o"
-        "#)?;
-    } else if cfg!(target_os = "windows") {
+     if cfg!(target_os = "windows") {
         cc::Build::new()
             .file("winapi.cpp")
             .flag("/EHsc")
