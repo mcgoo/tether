@@ -63,15 +63,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .flag("/W4")
             .compile("tether");
     } else if cfg!(target_os = "macos") {
-        run_script(r#"
-            clang -ffunction-sections -fdata-sections -fPIC -c -ObjC -fobjc-arc -Wall -Wextra -o "$OUT_DIR/libtether.o" cocoa.m
-            ar rcs "$OUT_DIR/libtether.a" "$OUT_DIR/libtether.o"
-        "#)?;
+        cc::Build::new()
+            .file("cocoa.m")
+            .flag("-ffunction-sections")
+            .flag("-fdata-sections")
+            .flag("-fPIC")
+            .flag("-c")
+            .flag("-ObjC")
+            .flag("-fobjc-arc")
+            .flag("-Wall")
+            .flag("-Wextra")
+            .compile("tether");
     }
 
     // Link the library.
 
-    if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
+    if cfg!(target_os = "linux")  {
         println!("cargo:rustc-link-search=native={}", out_path.display());
         println!("cargo:rustc-link-lib=static=tether");
     }
