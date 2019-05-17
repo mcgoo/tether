@@ -68,7 +68,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .flag("-ffunction-sections")
             .flag("-fdata-sections")
             .flag("-fPIC")
-            .flag("-c")
             .flag("-ObjC")
             .flag("-fobjc-arc")
             .flag("-Wall")
